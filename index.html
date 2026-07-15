@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Notes → Nailed It</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2431;
+    --ink-soft:#4a5468;
+    --paper:#f5f4f0;
+    --card:#ffffff;
+    --line: #d9d6cc;
+    --highlight:#f4c430;
+    --highlight-soft: #fdeeb3;
+    --green: #2f6b4f;
+    --wrong:#b3473d;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+  }
+  .wrap{
+    max-width:880px;
+    margin:0 auto;
+    padding:48px 24px 96px;
+  }
+  header{
+    margin-bottom:36px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:8px;height:8px;border-radius:50%;
+    background:var(--highlight);
+    display:inline-block;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(32px, 5vw, 48px);
+    line-height:1.08;
+    margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  h1 .hl{
+    background: linear-gradient(180deg, transparent 62%, var(--highlight-soft) 62%);
+  }
+  .sub{
+    color:var(--ink-soft);
+    font-size:17px;
+    max-width:560px;
+    margin:0;
+  }
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-top:28px;
+  }
+  textarea{
+    width:100%;
+    min-height:180px;
+    resize:vertical;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:16px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    color:var(--ink);
+    background:#fbfbf9;
+  }
+  textarea:focus{
+    outline:2px solid var(--ink);
+    outline-offset:1px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  button.primary{
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:12px 22px;
+    border-radius:8px;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+  button.primary:hover:not(:disabled){ background:#2e394d; }
+  button.primary:active:not(:disabled){ transform: scale(0.98); }
+  button.primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  button.primary:focus-visible{ outline:2px solid var(--highlight); outline-offset:2px; }
+
+  .error{
+    background:#fbeceb;
+    border:1px solid var(--wrong);
+    color:#7a2b23;
+    padding:12px 16px;
+    border-radius:8px;
+    margin-top:16px;
+    font-size:14px;
+  }
+
+  .tabs{
+    display:flex;
+    gap:4px;
+    margin-top:40px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.03em;
+    padding:10px 4px;
+    margin-right:24px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    background:none;
+    border-top:none;border-left:none;border-right:none;
+    user-select:none;
+  }
+  .tab.active{
+    color:var(--ink);
+    border-bottom-color: var(--highlight);
+  }
+  .tab:focus-visible{ outline:2px solid var(--ink); outline-offset:2px; }
+
+  .tab-content{ margin-top:24px; }
+  .tab-content[hidden]{ display:none; }
+
+  .summary{
+    font-family:'Fraunces', serif;
+    font-size:19px;
+    line-height:1.5;
+    color:var(--ink);
+    padding:18px 20px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--highlight);
+    border-radius:6px;
+  }
+
+  .concept{
+    padding:16px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .concept:last-child{ border-bottom:none; }
+  .concept-title{
+    font-weight:600;
+    font-size:15px;
+    margin:0 0 4px;
+  }
+  .concept-detail{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    margin:0;
+  }
+
+  .card-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap:18px;
+  }
+  .flip-card{
+    perspective:1000px;
+    height:160px;
+    cursor:pointer;
+  }
+  .flip-inner{
+    position:relative;
+    width:100%; height:100%;
+    transition: transform 0.5s;
+    transform-style: preserve-3d;
+  }
+  .flip-card.flipped .flip-inner{
+    transform: rotateY(180deg);
+  }
+  .flip-face{
+    position:absolute;
+    inset:0;
+    backface-visibility:hidden;
+    border-radius:8px;
+    padding:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:14.5px;
+    box-shadow: 0 1px 3px rgba(28,36,49,0.08);
+  }
+  .flip-front{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--ink);
+    font-weight:500;
+  }
+  .flip-back{
+    background:var(--ink);
+    color:var(--paper);
+    transform: rotateY(180deg);
+  }
+  .flip-hint{
+    position:absolute;
+    bottom:8px; right:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:var(--ink-soft);
+  }
+
+  .quiz-item{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  .quiz-q{
+    font-weight:600;
+    margin:0 0 12px;
+  }
+  .choice{
+    display:block;
+    width:100%;
+    text-align:left;
+    background:#fbfbf9;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px 14px;
+    margin-bottom:8px;
+    cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+  }
+  .choice:hover{ border-color:var(--ink); }
+  .choice.correct{
+    background:#e9f4ee;
+    border-color:var(--green);
+    color:#204a37;
+  }
+  .choice.wrong{
+    background:#fbeceb;
+    border-color:var(--wrong);
+    color:#7a2b23;
+  }
+  .choice:disabled{ cursor:default; }
+
+  .empty{
+    color:var(--ink-soft);
+    font-size:14px;
+    padding:20px 0;
+  }
+
+  footer{
+    margin-top:60px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    padding-top:18px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .flip-inner{ transition:none; }
+    button.primary{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Prototype · v1</div>
+    <h1>Turn messy notes into a<br><span class="hl">study guide that sticks.</span></h1>
+    <p class="sub">Paste your notes, a textbook page, or a lecture transcript. Get a clean summary, key concepts, flashcards, and a practice quiz — in about 15 seconds.</p>
+  </header>
+
+  <div class="panel">
+    <textarea id="notesInput" placeholder="Paste your messy notes here... (e.g. copy-pasted lecture slides, a chapter of a textbook, your own scribbled notes)"></textarea>
+    <div class="row">
+      <span class="count" id="charCount">0 characters</span>
+      <button class="primary" id="generateBtn">Generate study guide →</button>
+    </div>
+    <div id="errorBox"></div>
+  </div>
+
+  <div id="resultsArea" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="summary" role="tab">Summary</button>
+      <button class="tab" data-tab="flashcards" role="tab">Flashcards</button>
+      <button class="tab" data-tab="quiz" role="tab">Quiz</button>
+    </div>
+
+    <div class="tab-content" id="tab-summary">
+      <div class="summary" id="summaryText"></div>
+      <div id="conceptsList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-flashcards" hidden>
+      <div class="card-grid" id="cardGrid"></div>
+    </div>
+
+    <div class="tab-content" id="tab-quiz" hidden>
+      <div id="quizList"></div>
+    </div>
+  </div>
+
+  <footer>Notes → Nailed It — built as a working prototype. Nothing you type is saved.</footer>
+</div>
+
+<script>
+const notesInput = document.getElementById('notesInput');
+const charCount = document.getElementById('charCount');
+const generateBtn = document.getElementById('generateBtn');
+const errorBox = document.getElementById('errorBox');
+const resultsArea = document.getElementById('resultsArea');
+
+notesInput.addEventListener('input', () => {
+  charCount.textContent = notesInput.value.length + ' characters';
+});
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.hidden = true);
+    document.getElementById('tab-' + tab.dataset.tab).hidden = false;
+  });
+});
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function generate(){
+  const notes = notesInput.value.trim();
+  errorBox.innerHTML = '';
+  if(notes.length < 30){
+    errorBox.innerHTML = '<div class="error">Paste a bit more — at least a few sentences of notes so there is something to work with.</div>';
+    return;
+  }
+
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Generating...';
+
+  try{
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes: notes.slice(0, 6000) })
+    });
+
+    if(!response.ok){
+      throw new Error('Server returned ' + response.status);
+    }
+
+    const parsed = await response.json();
+    renderResults(parsed);
+  } catch(err){
+    console.error(err);
+    errorBox.innerHTML = '<div class="error">Something went wrong generating your study guide. Try again, or shorten your notes a bit.</div>';
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate study guide →';
+  }
+}
+
+function renderResults(data){
+  resultsArea.hidden = false;
+
+  document.getElementById('summaryText').textContent = data.summary || '';
+
+  const conceptsList = document.getElementById('conceptsList');
+  conceptsList.innerHTML = '';
+  (data.keyConcepts || []).forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'concept';
+    div.innerHTML = `<p class="concept-title">${escapeHtml(c.title)}</p><p class="concept-detail">${escapeHtml(c.detail)}</p>`;
+    conceptsList.appendChild(div);
+  });
+
+  const cardGrid = document.getElementById('cardGrid');
+  cardGrid.innerHTML = '';
+  (data.flashcards || []).forEach(fc => {
+    const card = document.createElement('div');
+    card.className = 'flip-card';
+    card.innerHTML = `
+      <div class="flip-inner">
+        <div class="flip-face flip-front">${escapeHtml(fc.front)}<span class="flip-hint">tap to flip</span></div>
+        <div class="flip-face flip-back">${escapeHtml(fc.back)}</div>
+      </div>`;
+    card.addEventListener('click', () => card.classList.toggle('flipped'));
+    cardGrid.appendChild(card);
+  });
+
+  const quizList = document.getElementById('quizList');
+  quizList.innerHTML = '';
+  (data.quiz || []).forEach((q, qi) => {
+    const item = document.createElement('div');
+    item.className = 'quiz-item';
+    const qEl = document.createElement('p');
+    qEl.className = 'quiz-q';
+    qEl.textContent = (qi+1) + '. ' + q.question;
+    item.appendChild(qEl);
+    q.choices.forEach((choice, ci) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = choice;
+      btn.addEventListener('click', () => {
+        const allBtns = item.querySelectorAll('.choice');
+        allBtns.forEach(b => b.disabled = true);
+        if(ci === q.answerIndex){
+          btn.classList.add('correct');
+        } else {
+          btn.classList.add('wrong');
+          allBtns[q.answerIndex].classList.add('correct');
+        }
+      });
+      item.appendChild(btn);
+    });
+    quizList.appendChild(item);
+  });
+}
+
+generateBtn.addEventListener('click', generate);
+</script>
+</body>
+</html>
