@@ -296,6 +296,17 @@
     .flip-inner{ transition:none; }
     button.primary{ transition:none; }
   }
+
+  @media print{
+    .panel, .tabs, footer{ display:none !important; }
+    .tab-content[hidden]{ display:block !important; }
+    .flip-card{ height:auto; perspective:none; page-break-inside:avoid; margin-bottom:10px; }
+    .flip-inner{ position:static; transform:none !important; }
+    .flip-face{ position:static; backface-visibility:visible; transform:none !important; box-shadow:none; border:1px solid var(--line); margin-bottom:6px; display:block; text-align:left; }
+    .flip-back{ background:#fff; color:var(--ink); }
+    .flip-hint{ display:none; }
+    .quiz-item .choice[data-correct="true"]::after{ content:" — correct answer"; font-weight:600; color:var(--green); }
+  }
 </style>
 </head>
 <body>
@@ -320,6 +331,7 @@
       <button class="tab active" data-tab="summary" role="tab">Summary</button>
       <button class="tab" data-tab="flashcards" role="tab">Flashcards</button>
       <button class="tab" data-tab="quiz" role="tab">Quiz</button>
+      <button class="tab" id="exportBtn" style="margin-left:auto; border-bottom-color:transparent;">Export as PDF ↓</button>
     </div>
 
     <div class="tab-content" id="tab-summary">
@@ -332,7 +344,11 @@
     </div>
 
     <div class="tab-content" id="tab-quiz" hidden>
-      <div id="quizList"></div>
+      <div class="row" style="margin-top:0;">
+        <span class="count" id="quizScore">Answer all questions to see your score</span>
+        <button class="primary" id="newQuizBtn" style="padding:8px 16px; font-size:14px;">🔄 New quiz</button>
+      </div>
+      <div id="quizList" style="margin-top:16px;"></div>
     </div>
   </div>
 
@@ -366,6 +382,8 @@ function escapeHtml(str){
   return div.innerHTML;
 }
 
+let lastNotes = '';
+
 async function generate(){
   const notes = notesInput.value.trim();
   errorBox.innerHTML = '';
@@ -389,6 +407,7 @@ async function generate(){
     }
 
     const parsed = await response.json();
+    lastNotes = notes;
     renderResults(parsed);
   } catch(err){
     console.error(err);
@@ -427,9 +446,17 @@ function renderResults(data){
     cardGrid.appendChild(card);
   });
 
+  renderQuiz(data.quiz || []);
+}
+
+function renderQuiz(quizItems){
   const quizList = document.getElementById('quizList');
+  const quizScore = document.getElementById('quizScore');
   quizList.innerHTML = '';
-  (data.quiz || []).forEach((q, qi) => {
+  const state = { total: quizItems.length, answered: 0, correct: 0 };
+  quizScore.textContent = state.total ? `0 of ${state.total} answered` : 'Answer all questions to see your score';
+
+  quizItems.forEach((q, qi) => {
     const item = document.createElement('div');
     item.className = 'quiz-item';
     const qEl = document.createElement('p');
@@ -440,14 +467,23 @@ function renderResults(data){
       const btn = document.createElement('button');
       btn.className = 'choice';
       btn.textContent = choice;
+      btn.dataset.correct = (ci === q.answerIndex) ? 'true' : 'false';
       btn.addEventListener('click', () => {
         const allBtns = item.querySelectorAll('.choice');
         allBtns.forEach(b => b.disabled = true);
-        if(ci === q.answerIndex){
+        const wasCorrect = ci === q.answerIndex;
+        if(wasCorrect){
           btn.classList.add('correct');
+          state.correct++;
         } else {
           btn.classList.add('wrong');
           allBtns[q.answerIndex].classList.add('correct');
+        }
+        state.answered++;
+        if(state.answered < state.total){
+          quizScore.textContent = `${state.answered} of ${state.total} answered`;
+        } else {
+          quizScore.textContent = `Score: ${state.correct} of ${state.total} correct — try "New quiz" to test yourself again`;
         }
       });
       item.appendChild(btn);
@@ -456,7 +492,47 @@ function renderResults(data){
   });
 }
 
+document.getElementById('newQuizBtn').addEventListener('click', async () => {
+  if(!lastNotes){
+    errorBox.innerHTML = '<div class="error">Generate a study guide first, then you can regenerate the quiz.</div>';
+    return;
+  }
+  const newQuizBtn = document.getElementById('newQuizBtn');
+  newQuizBtn.disabled = true;
+  newQuizBtn.textContent = 'Loading...';
+  try{
+    const response = await fetch('/api/quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: lastNotes })
+    });
+    if(!response.ok) throw new Error('Server error');
+    const data = await response.json();
+    renderQuiz(data.quiz || []);
+  } catch(err){
+    console.error(err);
+    errorBox.innerHTML = '<div class="error">Could not generate a new quiz right now. Try again in a moment.</div>';
+  } finally {
+    newQuizBtn.disabled = false;
+    newQuizBtn.textContent = '🔄 New quiz';
+  }
+});
+
 generateBtn.addEventListener('click', generate);
+
+const exportBtn = document.getElementById('exportBtn');
+exportBtn.addEventListener('click', () => {
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.dataset.wasHidden = c.hidden ? '1' : '0';
+    c.hidden = false;
+  });
+  window.print();
+});
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.hidden = c.dataset.wasHidden === '1';
+  });
+});
 </script>
 </body>
 </html>
