@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Not enough notes provided' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'Server is not configured with an API key yet' });
   }
@@ -22,26 +22,28 @@ NOTES:
 """${notes}"""`;
 
   try {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1500 }
-        })
-      }
-    );
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.4,
+        max_tokens: 1500
+      })
+    });
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error('Gemini error:', errText);
+    if (!groqResponse.ok) {
+      const errText = await groqResponse.text();
+      console.error('Groq error:', errText);
       return res.status(502).json({ error: 'AI service error' });
     }
 
-    const data = await geminiResponse.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const data = await groqResponse.json();
+    const rawText = data?.choices?.[0]?.message?.content || '';
     const cleaned = rawText.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleaned);
 
