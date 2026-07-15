@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const prompt = `You are helping a student study. Given their raw notes below, produce a compact JSON object with EXACTLY this shape and nothing else (no markdown fences, no preamble, no extra commentary):
 {"summary":"2-3 sentence plain-English summary of the material","keyConcepts":[{"title":"short concept name","detail":"1 sentence explanation"}],"flashcards":[{"front":"question or term","back":"short answer"}],"quiz":[{"question":"question text","choices":["A","B","C","D"],"answerIndex":0}]}
 
-Rules: keyConcepts should have 4-6 items. flashcards should have 6-8 items. quiz should have 3-4 items, each with exactly 4 choices and answerIndex as the 0-based index of the correct choice. Keep every string short and clear. Base everything strictly on the notes provided, don't invent outside facts.
+Rules: keyConcepts should have 4-6 items. flashcards should have 6-8 items. quiz should have 6-8 items, each with exactly 4 choices and answerIndex as the 0-based index of the correct choice. Keep every string short and clear. Base everything strictly on the notes provided, don't invent outside facts.
 
 NOTES:
 """${notes}"""`;
@@ -32,7 +32,7 @@ NOTES:
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
-        max_tokens: 1500
+        max_tokens: 2200
       })
     });
 
