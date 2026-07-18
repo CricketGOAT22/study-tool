@@ -61,7 +61,8 @@ NOTES:
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 1400
+        max_tokens: 1400,
+        response_format: { type: 'json_object' }
       })
     });
 
@@ -73,7 +74,14 @@ NOTES:
 
     const data = await groqResponse.json();
     const rawText = data?.choices?.[0]?.message?.content || '';
-    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    let cleaned = rawText.replace(/```json|```/g, '').trim();
+
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
     const parsed = JSON.parse(cleaned);
 
     return res.status(200).json(parsed);
