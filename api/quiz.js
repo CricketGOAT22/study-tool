@@ -1,11 +1,40 @@
+function looksLikeUrl(str) {
+  return /^https?:\/\/\S+$/i.test(str.trim());
+}
+
+async function extractTextFromUrl(url) {
+  const pageResponse = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StudyToolBot/1.0)' }
+  });
+  const html = await pageResponse.text();
+  const noScripts = html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  const text = noScripts.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.slice(0, 6000);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { notes } = req.body || {};
-  if (!notes || notes.trim().length < 30) {
+  let { notes } = req.body || {};
+  if (!notes || notes.trim().length < 3) {
     return res.status(400).json({ error: 'Not enough notes provided' });
+  }
+
+  if (looksLikeUrl(notes)) {
+    try {
+      notes = await extractTextFromUrl(notes.trim());
+    } catch (err) {
+      console.error('URL fetch error:', err);
+      return res.status(400).json({ error: 'Could not read that URL' });
+    }
+  }
+
+  if (!notes || notes.trim().length < 30) {
+    return res.status(400).json({ error: 'Not enough usable text found' });
   }
 
   const apiKey = process.env.GROQ_API_KEY;
