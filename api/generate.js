@@ -43,9 +43,11 @@ export default async function handler(req, res) {
   }
 
   const prompt = `You are helping a student study. Given their raw notes below, produce a compact JSON object with EXACTLY this shape and nothing else (no markdown fences, no preamble, no extra commentary):
-{"summary":"2-3 sentence plain-English summary of the material","keyConcepts":[{"title":"short concept name","detail":"1 sentence explanation"}],"flashcards":[{"front":"question or term","back":"short answer"}],"quiz":[{"question":"question text","choices":["A","B","C","D"],"answerIndex":0}]}
+{"lowConfidence":false,"summary":"2-3 sentence plain-English summary of the material","keyConcepts":[{"title":"short concept name","detail":"1 sentence explanation"}],"flashcards":[{"front":"question or term","back":"short answer"}],"quiz":[{"question":"question text","choices":["A","B","C","D"],"answerIndex":0}]}
 
 Rules: keyConcepts should have 4-6 items. flashcards should have 6-8 items. quiz should have 6-8 items, each with exactly 4 choices and answerIndex as the 0-based index of the correct choice. Keep every string short and clear. Base everything strictly on the notes provided, don't invent outside facts.
+
+IMPORTANT: If the notes below are too thin, vague, garbled, mostly boilerplate (like navigation menus, cookie notices, ads), or otherwise not enough to confidently build accurate study material from, set "lowConfidence" to true and do your best with what's there rather than inventing details to fill gaps.
 
 NOTES:
 """${notes}"""`;
@@ -61,7 +63,8 @@ NOTES:
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.4,
-        max_tokens: 2200
+        max_tokens: 2200,
+        response_format: { type: 'json_object' }
       })
     });
 
@@ -73,8 +76,22 @@ NOTES:
 
     const data = await groqResponse.json();
     const rawText = data?.choices?.[0]?.message?.content || '';
-    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    let cleaned = rawText.replace(/```json|```/g, '').trim();
+
+    // Fallback: if there's stray text before/after the JSON object, extract just the {...} part
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+    }
+
     const parsed = JSON.parse(cleaned);
+
+    // Deterministic backstop: don't trust the AI's own judgment alone —
+    // if the source material was genuinely thin, always flag it.
+    if (notes.trim().length < 150) {
+      parsed.lowConfidence = true;
+    }
 
     return res.status(200).json(parsed);
   } catch (err) {
