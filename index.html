@@ -172,6 +172,16 @@
     border-radius:6px;
   }
 
+  .low-confidence-warning{
+    background:#fdf3e3;
+    border:1px solid #d9a441;
+    color:#6b4a0e;
+    padding:12px 16px;
+    border-radius:8px;
+    margin-bottom:16px;
+    font-size:14px;
+  }
+
   .concept{
     padding:16px 0;
     border-bottom:1px solid var(--line);
@@ -335,6 +345,7 @@
     </div>
 
     <div class="tab-content" id="tab-summary">
+      <div id="lowConfidenceWarning"></div>
       <div class="summary" id="summaryText"></div>
       <div id="conceptsList"></div>
     </div>
@@ -420,6 +431,13 @@ async function generate(){
 
 function renderResults(data){
   resultsArea.hidden = false;
+
+  const warningBox = document.getElementById('lowConfidenceWarning');
+  if(data.lowConfidence){
+    warningBox.innerHTML = '<div class="low-confidence-warning">⚠️ Heads up — your notes seemed thin, unclear, or mostly boilerplate, so this study guide may be less accurate than usual. For best results, try pasting more complete notes.</div>';
+  } else {
+    warningBox.innerHTML = '';
+  }
 
   document.getElementById('summaryText').textContent = data.summary || '';
 
